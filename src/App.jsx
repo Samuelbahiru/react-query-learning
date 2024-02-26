@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 function App() {
   const POSTS = [
@@ -13,9 +12,28 @@ function App() {
     },
   ];
 
+  const queryClient = useQueryClient();
+
+  // useQuery is when we want to get our state from the server, not to change
+  // where as, useMutation is for the case we want to change or create a new state from the server
+  // server state is, the data we have/got from the server
+
+  //query
   const postsQuery = useQuery({
-    queryKey: ["getting posts"],
+    queryKey: ["posts"],
     queryFn: () => wait(1000).then(() => [...POSTS]),
+  });
+
+  // mutation
+  const newPostMutation = useMutation({
+    mutationFn: (title) => {
+      return wait(1000).then(() =>
+        POSTS.push({ id: crypto.randomUUID(), title })
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["posts"]);
+    },
   });
 
   if (postsQuery.isLoading) {
@@ -31,6 +49,9 @@ function App() {
         {postsQuery.data.map((post) => {
           return <h1 key={post.id}>{post.title}</h1>;
         })}
+        <button onClick={() => newPostMutation.mutate("New Post")}>
+          Add Post
+        </button>
       </div>
     </>
   );
